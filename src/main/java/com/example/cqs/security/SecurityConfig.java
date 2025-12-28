@@ -22,16 +22,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final CorrelationIdFilter correlationIdFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, CorrelationIdFilter correlationIdFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.correlationIdFilter = correlationIdFilter;
     }
 
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder encoder) {
         return new InMemoryUserDetailsManager(
                 User.withUsername("user").password(encoder.encode("password")).roles("USER").build(),
-                User.withUsername("admin").password(encoder.encode("password")).roles("ADMIN", "USER").build()
+                User.withUsername("admin").password(encoder.encode("pass word")).roles("ADMIN", "USER").build()
         );
     }
 
@@ -67,6 +69,7 @@ public class SecurityConfig {
                 )
                 .headers(h -> h.frameOptions(f -> f.disable()));
 
+        http.addFilterBefore(correlationIdFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

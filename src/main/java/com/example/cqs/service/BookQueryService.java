@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -18,9 +20,11 @@ public class BookQueryService {
     private static final Logger log = LoggerFactory.getLogger(BookQueryService.class);
     private final BookDao dao;
     private final Random random = new Random();
+    private final Executor executor;
 
-    public BookQueryService(BookDao dao) {
+    public BookQueryService(BookDao dao, @org.springframework.beans.factory.annotation.Qualifier("appTaskExecutor") Executor executor) {
         this.dao = dao;
+        this.executor = executor;
     }
 
     @Cacheable("book-by-id")
@@ -29,16 +33,28 @@ public class BookQueryService {
         return dao.findById(id);
     }
 
+    public CompletableFuture<Optional<Book>> getByIdAsync(Long id) {
+        return CompletableFuture.supplyAsync(() -> getById(id), executor);
+    }
+
     @Cacheable("book-by-isbn")
     public Optional<Book> getByIsbn(String isbn) {
         artificialDelay();
         return dao.findByIsbn(isbn);
     }
 
+    public CompletableFuture<Optional<Book>> getByIsbnAsync(String isbn) {
+        return CompletableFuture.supplyAsync(() -> getByIsbn(isbn), executor);
+    }
+
     @Cacheable("book-all")
     public List<Book> getAll() {
         artificialDelay();
         return dao.findAll();
+    }
+
+    public CompletableFuture<List<Book>> getAllAsync() {
+        return CompletableFuture.supplyAsync(this::getAll, executor);
     }
 
     // Simulate heavy payload for performance testing
